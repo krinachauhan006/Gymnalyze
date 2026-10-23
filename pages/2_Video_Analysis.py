@@ -17,6 +17,11 @@ FFMPEG_PATH = (
     r"\ffmpeg-9.0.2-essentials_build\bin\ffmpeg.exe"
 )
 
+
+# --------------------------------------------------
+# PAGE CONFIGURATION
+# --------------------------------------------------
+
 st.set_page_config(
     page_title="Gymnalyze",
     page_icon="🎯",
@@ -26,23 +31,20 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    /* Keep video players compact */
     video {
         max-height: 350px !important;
         width: 100% !important;
         object-fit: contain !important;
-        [data-testid="stSidebar"] {
-         display: none;
-        }
-
-        [data-testid="collapsedControl"] {
-        display: none;
-        }
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
+
+
+# --------------------------------------------------
+# PAGE HEADER
+# --------------------------------------------------
 
 st.title("Gymnalyze 🎯")
 st.caption("AI-powered gymnastics video analysis")
@@ -52,10 +54,16 @@ st.write(
     "detect athletes, and generate an annotated video."
 )
 
+
+# --------------------------------------------------
+# VIDEO UPLOAD
+# --------------------------------------------------
+
 uploaded = st.file_uploader(
     "Choose a gymnastics video",
     type=["mp4", "mov", "avi"],
 )
+
 
 if uploaded:
     st.subheader("Input video")
@@ -72,7 +80,7 @@ if uploaded:
         temp_browser_output = None
 
         try:
-            # 1. Save uploaded video temporarily
+            # 1. Save the uploaded video temporarily
             with tempfile.NamedTemporaryFile(
                 suffix=Path(uploaded.name).suffix,
                 delete=False,
@@ -80,7 +88,7 @@ if uploaded:
                 source.write(uploaded.getbuffer())
                 temp_input = source.name
 
-            # 2. Create temporary paths for both videos
+            # 2. Create temporary output paths
             with tempfile.NamedTemporaryFile(
                 suffix=".mp4",
                 delete=False,
@@ -93,9 +101,10 @@ if uploaded:
             ) as output:
                 temp_browser_output = output.name
 
-            # 3. Run the existing Gymnalyze inference pipeline
+            # 3. Run Gymnalyze inference
             progress = st.progress(0)
             status = st.empty()
+
             status.info("Classifying gymnastics video...")
 
             started = time.perf_counter()
@@ -110,16 +119,25 @@ if uploaded:
 
             inference_time = time.perf_counter() - started
 
+            # 4. Validate the inference output
             if (
                 not os.path.exists(temp_output)
                 or os.path.getsize(temp_output) == 0
             ):
                 raise RuntimeError(
-                    "The inference pipeline did not create a valid output video."
+                    "The inference pipeline did not create "
+                    "a valid output video."
                 )
 
-            # 4. Convert output to browser-compatible H.264 MP4
-            status.info("Converting video for browser playback...")
+            # 5. Convert to browser-compatible H.264 MP4
+            status.info(
+                "Converting video for browser playback..."
+            )
+
+            if not os.path.isfile(FFMPEG_PATH):
+                raise FileNotFoundError(
+                    f"FFmpeg executable not found: {FFMPEG_PATH}"
+                )
 
             conversion = subprocess.run(
                 [
@@ -154,43 +172,106 @@ if uploaded:
                     "FFmpeg did not create the converted video."
                 )
 
-            # 5. Read the converted video into memory
+            # 6. Read the converted video into memory
             with open(temp_browser_output, "rb") as video_file:
                 annotated_video_bytes = video_file.read()
 
-            # 6. Display results
             progress.progress(1.0)
-            status.success("Analysis and video conversion completed!")
+            status.success(
+                "Analysis and video conversion completed!"
+            )
+
+            # --------------------------------------------------
+            # 7. DISPLAY MAIN ANALYSIS RESULTS
+            # --------------------------------------------------
 
             st.divider()
-            st.subheader("Analysis results")
+            st.subheader("Analysis Results")
 
             col1, col2, col3 = st.columns(3)
 
             with col1:
                 st.metric(
-                    "Predicted discipline",
+                    "Predicted Discipline",
                     str(result["predicted_class"]).title(),
                 )
 
             with col2:
                 st.metric(
-                    "Model confidence",
+                    "Model Confidence",
                     f'{float(result["confidence"]):.1%}',
                 )
 
             with col3:
                 st.metric(
-                    "Inference time",
+                    "Inference Time",
                     f"{inference_time:.1f} sec",
                 )
 
             st.caption(
-                f'Frames processed: {result.get("frames_processed", 0)}'
+                "Confidence is the model's prediction score, "
+                "not a guarantee that the classification is correct."
             )
 
+            # --------------------------------------------------
+            # 8. DISPLAY AGENTIC VISION DETAILS
+            # --------------------------------------------------
+
             st.divider()
-            st.subheader("Annotated video")
+            st.subheader("Agentic Vision Details")
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.metric(
+                    "Frames Analyzed",
+                    result["frames_processed"],
+                )
+
+            with col2:
+                st.metric(
+                    "Frame Agreement",
+                    f'{result["frame_agreement"]:.1%}',
+                )
+
+            with col3:
+                st.metric(
+                    "Additional Sampling",
+                    "Yes" if result["retry_used"] else "No",
+                )
+
+            if result["retry_used"]:
+                st.info(
+                    "The system analyzed additional frames "
+                    "because the initial prediction was uncertain."
+                )
+            else:
+                st.success(
+                    "The initial sample met the configured thresholds."
+                )
+
+            if result["needs_review"]:
+                st.warning(
+                    "The prediction remains uncertain. "
+                    "Please verify the predicted discipline."
+                )
+            else:
+                st.success(
+                    "The prediction met the configured "
+                    "decision thresholds."
+                )
+
+            st.caption(
+                "Decision reason: "
+                + str(result["decision_reason"])
+            )
+
+            # --------------------------------------------------
+            # 9. DISPLAY ANNOTATED VIDEO
+            # --------------------------------------------------
+
+            st.divider()
+            st.subheader("Annotated Video")
 
             left, center, right = st.columns([1, 1, 1])
 
@@ -202,34 +283,31 @@ if uploaded:
                 )
 
                 st.download_button(
-                    label="Download annotated MP4",
+                    label="Download Annotated MP4",
                     data=annotated_video_bytes,
                     file_name="gymnalyze_annotated.mp4",
                     mime="video/mp4",
                     use_container_width=True,
                 )
 
-            st.caption(
-                "Confidence is the model's prediction score, "
-                "not a guarantee that the classification is correct."
-            )
-
         except subprocess.TimeoutExpired:
             st.error(
-                "Video conversion timed out. Try a shorter video."
+                "Video conversion timed out. "
+                "Try a shorter video."
             )
 
-        except FileNotFoundError:
+        except FileNotFoundError as exc:
             st.error(
-                "FFmpeg was not found. Check that FFMPEG_PATH "
-                "points to the actual ffmpeg.exe file."
+                f"Required file not found: {exc}"
             )
 
         except Exception as exc:
-            st.error(f"Video analysis failed: {exc}")
+            st.error(
+                f"Video analysis failed: {exc}"
+            )
 
         finally:
-            # 7. Clean up temporary files
+            # 10. Clean up temporary files
             for path in (
                 temp_input,
                 temp_output,

@@ -1,6 +1,6 @@
 
 from pathlib import Path
-
+from agentic_vision import analyze_video_agentically
 import cv2
 import numpy as np
 import torch
@@ -120,58 +120,27 @@ def process_video(
             f"Input video not found: {input_path}"
         )
 
-    # PASS 1: Sample frames and predict the overall class.
-    cap = cv2.VideoCapture(str(input_path))
-
-    if not cap.isOpened():
-        raise RuntimeError("Could not open the uploaded video.")
-
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    if not np.isfinite(fps) or fps <= 0:
-        fps = 30.0
-
-    frame_index = 0
-    probabilities_list = []
-
-    total_frames = int(
-        cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    # PASS 1: Sample frames and predict the overall class.    
+    agent_result = analyze_video_agentically(
+        video_path=input_path,
+        predict_frame=predict_frame,
+        class_names=class_names,
+        initial_samples=8,
+        extra_samples=12,
+        confidence_threshold=0.70,
+        agreement_threshold=0.65,
     )
 
-    try:
-        while True:
-            ok, frame = cap.read()
-            if not ok:
-                break
+    predicted_class = agent_result["predicted_class"]
+    confidence = agent_result["confidence"]
 
-            if frame_index % FRAME_INTERVAL == 0:
-                probabilities_list.append(
-                    predict_frame(frame)
-                )
+    mean_probabilities = np.array([
+        agent_result["class_scores"][str(name)]
+        for name in class_names
+    ])
 
-            frame_index += 1
-
-            if progress_callback and total_frames > 0:
-                fraction = frame_index / total_frames
-                progress_callback(0.4 * fraction)
-    finally:
-        cap.release()
-
-    if not probabilities_list:
-        raise RuntimeError(
-            "No frames could be classified from this video."
-        )
-
-    mean_probabilities = np.mean(
-        probabilities_list, axis=0
-    )
-
-    predicted_index = int(
-        np.argmax(mean_probabilities)
-    )
-    predicted_class = str(class_names[predicted_index])
-    confidence = float(
-        mean_probabilities[predicted_index]
-    )
+    if progress_callback:
+        progress_callback(0.4)
 
     # PASS 2: Detect people, draw boxes and write the video.
     cap = cv2.VideoCapture(str(input_path))
@@ -186,6 +155,11 @@ def process_video(
     total_frames = int(
         cap.get(cv2.CAP_PROP_FRAME_COUNT)
     )
+
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    if not np.isfinite(fps) or fps <= 0:
+        fps = 30.0
 
     if width <= 0 or height <= 0:
         cap.release()
@@ -308,7 +282,11 @@ def process_video(
                 class_names, mean_probabilities
             )
         },
-        "frames_processed": len(probabilities_list),
+        "frames_processed": agent_result["frames_processed"],
         "frames_written": frames_written,
         "output_path": str(output_path),
+        "retry_used": agent_result["retry_used"],
+        "frame_agreement": agent_result["frame_agreement"],
+        "needs_review": agent_result["needs_review"],
+        "decision_reason": agent_result["reason"],
     }

@@ -187,14 +187,7 @@ with header_left:
         unsafe_allow_html=True,
     )
 
-with header_right:
-    if st.button(
-        "Try Video Analysis →",
-        type="primary",
-        width="stretch",
-        key="header_analysis",
-    ):
-        st.switch_page("pages/2_Video_Analysis.py")
+
 
 # ---------- Hero section ----------
 hero_left, hero_right = st.columns([1.1, 1], gap="large")

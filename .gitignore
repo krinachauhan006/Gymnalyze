@@ -1,5 +1,25 @@
 venv/
 __pycache__/
 *.pyc
+
+# Python environments and cache
+venv/
+.venv/
+.venv-test/
+__pycache__/
+*.py[cod]
+
+# Secrets
 .env
+.env.*
+!.env.example
 .streamlit/secrets.toml
+
+# Local test videos and evaluation output
+test.mp4
+test_videos/
+agentic_evaluation.csv
+
+# Generated output
+results/
+uploads/
