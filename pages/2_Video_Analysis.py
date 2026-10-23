@@ -4,17 +4,19 @@ import tempfile
 import time
 import subprocess
 from pathlib import Path
-
+import shutil
 import streamlit as st
 
 from gymnalyze_inference import process_video
 
 
 # FFmpeg executable
+# Find FFmpeg on either Windows or Linux
 FFMPEG_PATH = (
-    r"C:\Users\RAJESH M CHAUHAN\Downloads"
-    r"\ffmpeg-9.0.2-essentials_build"
-    r"\ffmpeg-9.0.2-essentials_build\bin\ffmpeg.exe"
+    shutil.which("ffmpeg")
+    or r"C:\Users\RAJESH M CHAUHAN\Downloads"
+       r"\ffmpeg-9.0.2-essentials_build"
+       r"\ffmpeg-9.0.2-essentials_build\bin\ffmpeg.exe"
 )
 
 
@@ -134,7 +136,7 @@ if uploaded:
                 "Converting video for browser playback..."
             )
 
-            if not os.path.isfile(FFMPEG_PATH):
+            if not Path(FFMPEG_PATH).is_file():
                 raise FileNotFoundError(
                     f"FFmpeg executable not found: {FFMPEG_PATH}"
                 )
