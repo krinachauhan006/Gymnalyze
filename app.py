@@ -1,7 +1,20 @@
+"""
+app.py — Gymnalyze Landing Dashboard & Hackathon Showcase.
+Presents the AI gymnastics analysis platform, architecture explanation,
+disciplines showcase, and direct entry points to both testing modes:
+  Mode A: Live Camera Analysis
+  Mode B: Upload Video Analysis
+"""
 
 from pathlib import Path
-
 import streamlit as st
+import ui_components
+from ui_components import (
+    get_custom_css,
+    render_brand_header,
+    render_status_pill,
+    render_agentic_explanation,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 ASSETS_DIR = BASE_DIR / "assets"
@@ -13,366 +26,216 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ---------- Styling ----------
+st.markdown(get_custom_css(), unsafe_allow_html=True)
+
+
+def get_asset_image(filename_base: str) -> Path:
+    """Return path to asset image checking both .jpeg and .jpg extensions."""
+    for ext in (".jpeg", ".jpg", ".png"):
+        p = ASSETS_DIR / f"{filename_base}{ext}"
+        if p.is_file():
+            return p
+    return ASSETS_DIR / f"{filename_base}.jpeg"
+
+
+# --------------------------------------------------
+# TOP NAVIGATION & BRAND
+# --------------------------------------------------
+st.markdown(
+    render_brand_header(subtitle="Hackathon Showcase Edition · Real-Time Edge AI & Agentic Vision"),
+    unsafe_allow_html=True,
+)
+
+# --------------------------------------------------
+# HERO SECTION
+# --------------------------------------------------
+hero_left, hero_right = st.columns([1.15, 1], gap="large")
+
+with hero_left:
+    st.markdown(
+        """
+        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 9999px; font-size: 0.8rem; font-weight: 700; color: #34d399; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px;">
+            ⚡ AI-POWERED SPORTS ANALYTICS
+        </div>
+        <h1 style="font-size: clamp(2.6rem, 5vw, 3.8rem); line-height: 1.1; font-weight: 850; color: #ffffff; margin: 0 0 16px 0;">
+            Decode Every<br>
+            <span style="background: linear-gradient(90deg, #34d399 0%, #38bdf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                Gymnastics Move.
+            </span>
+        </h1>
+        <p style="font-size: 1.05rem; line-height: 1.7; color: #cbd5e1; max-width: 580px; margin-bottom: 24px;">
+            Gymnalyze revolutionizes gymnastics video analytics by pairing <strong>MobileNetV3-Small</strong> deep classification with <strong>YOLO11n</strong> real-time athlete tracking and an adaptive multi-pass <strong>Agentic Vision</strong> loop.
+        </p>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Quick Jump Buttons
+    cta_col1, cta_col2 = st.columns(2, gap="small")
+    with cta_col1:
+        if st.button("🎥 Launch Live Camera Mode", type="primary", width="stretch"):
+            st.session_state["selected_mode"] = "live"
+            st.switch_page("pages/2_Video_Analysis.py")
+    with cta_col2:
+        if st.button("📁 Launch Video Upload Mode", width="stretch"):
+            st.session_state["selected_mode"] = "upload"
+            st.switch_page("pages/2_Video_Analysis.py")
+
+    st.caption("Supports live webcam stream analysis and video file uploads (MP4, MOV, AVI).")
+
+with hero_right:
+    hero_img = get_asset_image("hero_gymnastics")
+    if hero_img.is_file():
+        st.image(str(hero_img), width="stretch")
+    else:
+        st.info("Hero visual ready.")
+
+# --------------------------------------------------
+# TWO PROMINENT MODE SELECTION CARDS
+# --------------------------------------------------
+st.write("")
+st.divider()
+
 st.markdown(
     """
-    <style>
-    .stApp {
-        background: #0b1020;
-        color: #f8fafc;
-    }
-
-    [data-testid="stHeader"] {
-        background: rgba(11, 16, 32, 0.95);
-    }
-
-    .block-container {
-        max-width: 1200px;
-        padding-top: 4rem !important;
-        padding-bottom: 3rem;
-    }
-
-    .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-family: "Trebuchet MS", Arial, sans-serif;
-        font-size: 1.65rem;
-        font-weight: 800;
-        letter-spacing: 2px;
-        line-height: 1.4;
-        color: #ffffff;
-        white-space: nowrap;
-        width: 100%;
-        overflow: visible;
-        padding: 8px 0;
-        position: relative;
-        z-index: 1;
-        display: flex;
-        padding-top: 12px;
-        padding-bottom: 12px;
-    }
-    
-    .brand-icon {
-        font-size: 1.6rem;
-        letter-spacing: 0;
-        flex-shrink: 0;
-    }
-
-    .eyebrow {
-        color: #4ade80;
-        font-weight: 700;
-        letter-spacing: 2px;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-    }
-
-    .hero-title {
-        font-size: clamp(2.5rem, 5vw, 4.3rem);
-        line-height: 1.08;
-        font-weight: 850;
-        color: #ffffff;
-        margin: 0.7rem 0 1rem 0;
-    }
-
-    .hero-description {
-        color: #cbd5e1;
-        font-size: 1.1rem;
-        line-height: 1.8;
-    }
-
-    .section-title {
-        color: #ffffff;
-        font-size: 2rem;
-        font-weight: 750;
-        margin-top: 1rem;
-    }
-
-    .feature-card {
-        background: #151d30;
-        border: 1px solid #29364d;
-        border-radius: 16px;
-        padding: 22px;
-        min-height: 165px;
-        margin-bottom: 12px;
-    }
-
-    .feature-card h3 {
-        color: #ffffff;
-        font-size: 1.15rem;
-    }
-
-    .feature-card p {
-        color: #b9c5d8;
-        line-height: 1.65;
-    }
-
-    .small-note {
-        color: #94a3b8;
-        font-size: 0.85rem;
-    }
-
-    div.stButton > button {
-        border-radius: 10px;
-        font-weight: 700;
-        min-height: 48px;
-    }
-
-    hr {
-        border-color: #29364d;
-    }
-    
-    [data-testid="stSidebar"] {
-             display: none;
-            }
-    
-    [data-testid="collapsedControl"] {
-            display: none;
-            }
-            
-    .hero-title {
-        font-family: "Trebuchet MS", sans-serif;
-        font-size: clamp(2.8rem, 5vw, 4.5rem);
-        font-weight: 800;
-        line-height: 1.08;
-        letter-spacing: -1.5px;
-        color: #ffffff;
-        margin: 1rem 0;
-    }
-
-    .hero-description {
-        font-size: 1.1rem;
-        line-height: 1.8;
-        color: #cbd5e1;
-        max-width: 540px; 
-    }
-    
-    /* Keep the default Streamlit header visible */
-    [data-testid="stHeader"] {
-        height: 3.5rem;
-        background: #0b1020;
-    }
-
-    [data-testid="stImage"] img {
-        border-radius: 18px;
-    }
- 
-    div.stButton > button[kind="primary"] {
-        min-height: 52px;
-        border-radius: 12px;
-        font-size: 1rem;
-        font-weight: 700;
-    }
-    [data-testid="stImage"] img {
-        width: 100%;
-        border-radius: 18px;
-        object-fit: cover;
-    }
-    </style>
+    <div style="text-align: center; margin-bottom: 24px;">
+        <h2 style="font-size: 1.85rem; font-weight: 800; color: #ffffff; margin-bottom: 6px;">
+            Choose Your Analysis Mode
+        </h2>
+        <p style="color: #94a3b8; font-size: 0.95rem; max-width: 620px; margin: 0 auto;">
+            Experience Gymnalyze through live webcam motion tracking or deep multi-pass video file evaluation.
+        </p>
+    </div>
     """,
     unsafe_allow_html=True,
 )
 
-# ---------- Navigation / brand ----------
-header_left, header_right = st.columns([3, 1], gap="small")
+mode_c1, mode_c2 = st.columns(2, gap="large")
 
-with header_left:
+with mode_c1:
     st.markdown(
         """
-        <div class="brand">
-            <span class="brand-icon">🎯</span>
-            <span>GYMNALYZE</span>
+        <div class="mode-card">
+            <div>
+                <div class="mode-icon">🎥</div>
+                <div class="mode-title">Mode A — Live Camera Analysis</div>
+                <div class="mode-desc">
+                    Connect your webcam to perform real-time athlete detection, live discipline probability tracking, and instant annotated MP4 session recording.
+                </div>
+                <div style="margin: 16px 0; display: flex; flex-wrap: wrap; gap: 8px;">
+                    <span style="font-size: 0.75rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-weight: 600;">Hardware Webcam</span>
+                    <span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 600;">Live Bounding Boxes</span>
+                    <span style="font-size: 0.75rem; background: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 4px 10px; border-radius: 6px; font-weight: 600;">Instant Recording</span>
+                </div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-
-
-# ---------- Hero section ----------
-hero_left, hero_right = st.columns([1.1, 1], gap="large")
-
-with hero_left:
-    st.markdown(
-        '<div class="eyebrow">AI-POWERED SPORTS ANALYTICS</div>',
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        """
-        <div class="hero-title">
-            Decode Every<br>
-            <span style="color:#4ade80;">Gymnastics Move.</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        """
-        <div class="hero-description">
-            Discover Gymnalyze — a computer-vision project that
-            classifies gymnastics videos, detects athletes,
-            and generates annotated results.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.write("")
-
-    if st.button(
-        "▶  Start Video Analysis",
-        type="primary",
-        width="stretch",
-    ):
+    if st.button("Start Live Camera Analysis →", key="btn_mode_a", width="stretch"):
+        st.session_state["selected_mode"] = "live"
         st.switch_page("pages/2_Video_Analysis.py")
 
-    st.caption("Upload a video. Explore predictions. Download results.")
-
-with hero_right:
-    hero_image = ASSETS_DIR / "hero_gymnastics.jpeg"
-
-    if hero_image.is_file():
-        st.image(
-            str(hero_image),
-            width="stretch",
-        )
-    else:
-        st.error(f"Hero image not found: {hero_image}")
-
-# ---------- About section ----------
-st.write("")
-st.divider()
-
-st.markdown(
-    '<div class="section-title">What is Gymnalyze?</div>',
-    unsafe_allow_html=True,
-)
-
-st.markdown(
-    """
-    Gymnalyze explores how computer vision and deep learning
-    can help analyze gymnastics videos. Its video-analysis
-    pipeline predicts a gymnastics discipline, applies athlete
-    detection, displays the prediction score, and creates an
-    annotated video that can be downloaded.
-    """
-)
-
-st.write("")
-
-# ---------- Features ----------
-st.markdown(
-    '<div class="section-title">What can it do?</div>',
-    unsafe_allow_html=True,
-)
-
-c1, c2, c3 = st.columns(3, gap="medium")
-
-features = [
-    (
-        "🧠",
-        "AI Classification",
-        "Use the trained MobileNetV3 model to predict the "
-        "discipline represented in a video.",
-    ),
-    (
-        "🔎",
-        "Athlete Detection",
-        "Use YOLO-based person detection to identify athletes "
-        "and visualize detection boxes.",
-    ),
-    (
-        "🎬",
-        "Annotated Output",
-        "Review the processed video, see the prediction score, "
-        "and download an MP4 result.",
-    ),
-]
-
-for column, (emoji, title, description) in zip(
-    [c1, c2, c3], features
-):
-    with column:
-        st.markdown(
-            f"""
-            <div class="feature-card">
-                <div style="font-size: 2rem;">{emoji}</div>
-                <h3>{title}</h3>
-                <p>{description}</p>
+with mode_c2:
+    st.markdown(
+        """
+        <div class="mode-card">
+            <div>
+                <div class="mode-icon">📁</div>
+                <div class="mode-title">Mode B — Upload Video Analysis</div>
+                <div class="mode-desc">
+                    Upload pre-recorded competition routines. Features multi-pass adaptive frame sampling, uncertainty threshold checks, and full annotated video export.
+                </div>
+                <div style="margin: 16px 0; display: flex; flex-wrap: wrap; gap: 8px;">
+                    <span style="font-size: 0.75rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-weight: 600;">Drag & Drop Video</span>
+                    <span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 600;">Adaptive Sampling</span>
+                    <span style="font-size: 0.75rem; background: rgba(168, 85, 247, 0.15); color: #c084fc; padding: 4px 10px; border-radius: 6px; font-weight: 600;">Download Annotated MP4</span>
+                </div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button("Start Video Upload Analysis →", key="btn_mode_b", width="stretch"):
+        st.session_state["selected_mode"] = "upload"
+        st.switch_page("pages/2_Video_Analysis.py")
 
-# ---------- Disciplines ----------
+# --------------------------------------------------
+# SECTION 4: AGENTIC VISION EXPLANATION
+# --------------------------------------------------
+st.write("")
+st.divider()
+st.markdown(render_agentic_explanation(), unsafe_allow_html=True)
+
+# --------------------------------------------------
+# DISCIPLINES SHOWCASE
+# --------------------------------------------------
 st.write("")
 st.divider()
 
-st.markdown(
-    '<div class="section-title">Explore Gymnastics</div>',
-    unsafe_allow_html=True,
-)
-
-st.caption(
-    "The available classification categories depend on the "
-    "classes included in the trained model."
-)
-
-d1, d2 = st.columns(2, gap="large")
-
-with d1:
-    artistic = ASSETS_DIR / "artistic_gymnastics.jpg"
-
-    if artistic.exists():
-        st.image(str(artistic), use_container_width=True)
-
-    st.subheader("Artistic Gymnastics")
-    st.write(
-        "A discipline featuring strength, balance, flexibility, "
-        "and acrobatic skills performed on apparatus or the floor."
-    )
-
-with d2:
-    rhythmic = ASSETS_DIR / "rhythmic_gymnastics.jpg"
-
-    if rhythmic.exists():
-        st.image(str(rhythmic), use_container_width=True)
-
-    st.subheader("Rhythmic Gymnastics")
-    st.write(
-        "A discipline combining expressive body movements, "
-        "coordination, and apparatus such as ribbons or hoops."
-    )
-
-# ---------- Call to action ----------
-st.write("")
-st.divider()
-
-st.markdown(
-    '<div class="section-title">Ready to try Gymnalyze?</div>',
-    unsafe_allow_html=True,
-)
-
-st.write(
-    "Upload an unseen gymnastics video and explore the "
-    "model's prediction and annotated output."
-)
-
-if st.button(
-    "Open Video Analysis →",
-    type="primary",
-    use_container_width=True,
-):
-    st.switch_page("pages/2_Video_Analysis.py")
-
-st.write("")
 st.markdown(
     """
-    <div class="small-note">
-        GYMNALYZE · AI-powered gymnastics video analysis ·
-        Academic / experimental project
+    <div style="margin-bottom: 20px;">
+        <h2 style="font-size: 1.7rem; font-weight: 800; color: #ffffff; margin-bottom: 6px;">
+            Recognized Gymnastics Disciplines
+        </h2>
+        <p style="color: #94a3b8; font-size: 0.95rem; margin: 0;">
+            The classification backbone is trained to distinguish between the two primary Olympic gymnastics categories:
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+disc_c1, disc_c2 = st.columns(2, gap="large")
+
+with disc_c1:
+    art_img = get_asset_image("artistic_gymnastics")
+    if art_img.is_file():
+        st.image(str(art_img), width="stretch")
+    st.markdown(
+        """
+        <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 18px; margin-top: 10px;">
+            <h3 style="color: #60a5fa; margin: 0 0 6px 0; font-size: 1.2rem;">🤸 Artistic Gymnastics</h3>
+            <p style="color: #cbd5e1; font-size: 0.9rem; line-height: 1.6; margin: 0;">
+                Characterized by explosive acrobatics, apparatus work (vault, uneven bars, balance beam, floor, rings, pommel horse), and dynamic rotational dismounts.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with disc_c2:
+    rhy_img = get_asset_image("rhythmic_gymnastics")
+    if rhy_img.is_file():
+        st.image(str(rhy_img), width="stretch")
+    st.markdown(
+        """
+        <div style="background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 18px; margin-top: 10px;">
+            <h3 style="color: #34d399; margin: 0 0 6px 0; font-size: 1.2rem;">🎀 Rhythmic Gymnastics</h3>
+            <p style="color: #cbd5e1; font-size: 0.9rem; line-height: 1.6; margin: 0;">
+                Focuses on expressive musical choreography, extreme body flexibility, and graceful manipulation of handheld apparatus including ribbons, hoops, balls, and clubs.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# --------------------------------------------------
+# FOOTER / HACKATHON CREDITS
+# --------------------------------------------------
+st.write("")
+st.divider()
+
+st.markdown(
+    """
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 0.85rem; color: #64748b; padding: 12px 0;">
+        <div>
+            🎯 <strong>GYMNALYZE</strong> · AI Gymnastics Video & Pose Analysis Dashboard
+        </div>
+        <div>
+            Powered by PyTorch · TorchVision · Ultralytics YOLO11n · OpenCV 5.0
+        </div>
     </div>
     """,
     unsafe_allow_html=True,
