@@ -50,46 +50,21 @@ than guarantees.
 
 ```mermaid
 flowchart TD
-    A(["🎥 Gymnastics Video"]) --> B["🌐 Streamlit Interface"]
+    A["🎥 Gymnastics Video Input"] --> B["🌐 Streamlit Interface"]
     B --> C["🎞️ Video Frame Extraction"]
     C --> D["⚙️ OpenCV 5 Processing"]
     D --> E["🧍 YOLO Person Detection"]
-    E --> F["🧠 Trained Classification Model"]
-
-    F --> G{"🤸 Predicted Discipline"}
+    E --> F["🤖 Trained Classification Model"]
+    F --> G{"Predicted Discipline"}
     G --> H["Artistic Gymnastics"]
     G --> I["Rhythmic Gymnastics"]
-
-    H --> J["📊 Prediction & Confidence"]
+    H --> J["📊 Results and Confidence"]
     I --> J
-    J --> K["🎬 Annotated Results"]
-    K --> L(["👤 User Views Results"])
+    J --> K["🎞️ Annotated Output"]
+    K --> L["👤 User Reviews Results"]
 
-    AWS["☁️ AWS EC2 Hosting"] -. Hosts .-> B
-
-    subgraph AV["🔬 Agentic Vision — Future Enhancement"]
-        M["👁️ Inspect Visual Evidence"] --> N["🧠 Reason About Frames"]
-        N --> O{"Need More Analysis?"}
-        O -- Yes --> P["🔧 Select Additional Frames / Tools"]
-        P --> M
-        O -- No --> Q["✅ Final Analysis"]
-    end
-
-    F -. Potential integration .-> M
-
-    classDef input fill:#DCEBFF,stroke:#2563EB,color:#172554,stroke-width:2px
-    classDef processing fill:#D1FAE5,stroke:#059669,color:#064E3B,stroke-width:2px
-    classDef model fill:#F3E8FF,stroke:#9333EA,color:#581C87,stroke-width:2px
-    classDef output fill:#FEF3C7,stroke:#D97706,color:#78350F,stroke-width:2px
-    classDef cloud fill:#E5E7EB,stroke:#4B5563,color:#111827,stroke-width:1px
-    classDef future fill:#FCE7F3,stroke:#DB2777,color:#831843,stroke-dasharray:5 5
-
-    class A,B input
-    class C,D,E processing
-    class F,G model
-    class H,I,J,K,L output
-    class AWS cloud
-    class M,N,O,P,Q future
+    M["☁️ AWS EC2"] -. Hosts .-> B
+       
 ```
 
 ### 🔍 Architecture Notes
