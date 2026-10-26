@@ -45,23 +45,63 @@ than guarantees.
 
 ### High-level architecture
 
-``` mermaid
+
+## 🏗️ Gymnalyze — System Architecture
+
+```mermaid
 flowchart TD
-    U[User] --> UI[Streamlit Web App]
-    UI --> V[Video Validation and Preprocessing]
-    V --> CV[OpenCV 5<br/>Frame Extraction and Visual Processing]
-    CV --> A[Agentic Vision Workflow]
-    A --> Y[YOLO Model Inference]
-    Y --> R[Prediction and Analysis Results]
-    R --> UI
+    A(["🎥 Gymnastics Video"]) --> B["🌐 Streamlit Interface"]
+    B --> C["🎞️ Video Frame Extraction"]
+    C --> D["⚙️ OpenCV 5 Processing"]
+    D --> E["🧍 YOLO Person Detection"]
+    E --> F["🧠 Trained Classification Model"]
 
-    V --> F[FFmpeg<br/>Video Conversion when needed]
-    F --> CV
+    F --> G{"🤸 Predicted Discipline"}
+    G --> H["Artistic Gymnastics"]
+    G --> I["Rhythmic Gymnastics"]
 
-    UI --> EC2[AWS EC2<br/>Hosts Streamlit Application]
-    EC2 --> S3[Amazon S3<br/>Configured Object Storage]
-    EC2 --> CW[Amazon CloudWatch<br/>Logs and Monitoring]
+    H --> J["📊 Prediction & Confidence"]
+    I --> J
+    J --> K["🎬 Annotated Results"]
+    K --> L(["👤 User Views Results"])
+
+    AWS["☁️ AWS EC2 Hosting"] -. Hosts .-> B
+
+    subgraph AV["🔬 Agentic Vision — Future Enhancement"]
+        M["👁️ Inspect Visual Evidence"] --> N["🧠 Reason About Frames"]
+        N --> O{"Need More Analysis?"}
+        O -- Yes --> P["🔧 Select Additional Frames / Tools"]
+        P --> M
+        O -- No --> Q["✅ Final Analysis"]
+    end
+
+    F -. Potential integration .-> M
+
+    classDef input fill:#DCEBFF,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef processing fill:#D1FAE5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef model fill:#F3E8FF,stroke:#9333EA,color:#581C87,stroke-width:2px
+    classDef output fill:#FEF3C7,stroke:#D97706,color:#78350F,stroke-width:2px
+    classDef cloud fill:#E5E7EB,stroke:#4B5563,color:#111827,stroke-width:1px
+    classDef future fill:#FCE7F3,stroke:#DB2777,color:#831843,stroke-dasharray:5 5
+
+    class A,B input
+    class C,D,E processing
+    class F,G model
+    class H,I,J,K,L output
+    class AWS cloud
+    class M,N,O,P,Q future
 ```
+
+### 🔍 Architecture Notes
+
+- **OpenCV 5:** Handles video reading and frame processing.
+- **YOLO:** Detects people in the video.
+- **Classification model:** Predicts artistic or rhythmic gymnastics.
+- **Streamlit:** Provides the user interface.
+- **AWS EC2:** Hosts the deployed application.
+- **Agentic Vision:** The dashed pink section represents a proposed enhancement for reasoning over visual evidence and choosing additional analysis steps; it should not be presented as implemented until that workflow is integrated.
+- **Webcam limitation:** Browser-based live webcam analysis is still under development; the current workflow uses uploaded or sample videos.
+
 
 **Diagram note:** This is a logical architecture diagram. Exact data
 paths and the extent of S3/CloudWatch integration depend on the deployed
