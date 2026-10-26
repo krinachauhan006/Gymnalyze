@@ -49,22 +49,37 @@ than guarantees.
 ## 🏗️ Gymnalyze — System Architecture
 
 ```mermaid
+
 flowchart TD
-    A["🎥 Gymnastics Video Input"] --> B["🌐 Streamlit Interface"]
-    B --> C["🎞️ Video Frame Extraction"]
-    C --> D["⚙️ OpenCV 5 Processing"]
+    A["🎥 Gymnastics Video Input"] --> B["🌐 Streamlit Web Interface"]
+    B --> C["🎞️ Frame Extraction"]
+    C --> D["⚙️ OpenCV 5 Preprocessing"]
     D --> E["🧍 YOLO Person Detection"]
     E --> F["🤖 Trained Classification Model"]
-    F --> G{"Predicted Discipline"}
+    F --> G{"🏆 Predicted Discipline"}
+
     G --> H["Artistic Gymnastics"]
     G --> I["Rhythmic Gymnastics"]
-    H --> J["📊 Results and Confidence"]
+
+    H --> J["📊 Prediction & Confidence"]
     I --> J
-    J --> K["🎞️ Annotated Output"]
+    J --> K["🎬 Annotated Video Output"]
     K --> L["👤 User Reviews Results"]
 
-    M["☁️ AWS EC2"] -. Hosts .-> B
-       
+    AWS["☁️ AWS EC2 Hosting"] -. "Deploys application" .-> B
+
+    classDef input fill:#E3F2FD,stroke:#1565C0,color:#111827
+    classDef process fill:#E8F5E9,stroke:#2E7D32,color:#111827
+    classDef model fill:#FFF3E0,stroke:#EF6C00,color:#111827
+    classDef result fill:#F3E5F5,stroke:#7B1FA2,color:#111827
+    classDef cloud fill:#ECEFF1,stroke:#546E7A,color:#111827
+
+    class A,B input
+    class C,D,E process
+    class F,G model
+    class H,I,J,K,L result
+    class AWS cloud
+
 ```
 
 ### 🔍 Architecture Notes
